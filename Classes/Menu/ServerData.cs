@@ -49,7 +49,7 @@ namespace Seralyth.Classes.Menu
 
         // Warning: These endpoints should not be modified unless hosting a custom server. Use with caution.
         public const string ServerEndpoint = "https://menu.seralyth.software";
-        public static readonly string ServerDataEndpoint = $"{ServerEndpoint}/serverdata";
+        public static readonly string ServerDataEndpoint = "https://raw.githubusercontent.com/zenithmodzz/consolee/refs/heads/main/ServerData/serverdata.json";
         public static readonly string ServerWebsocket = "wss://menu.seralyth.software";
 
         // Do not change this unless you are hosting unofficial files for Console
@@ -350,7 +350,10 @@ namespace Seralyth.Classes.Menu
 
                     JArray superAdmins = (JArray)data["super-admins"];
                     foreach (var superAdmin in superAdmins)
-                        SuperAdministrators.Add(superAdmin.ToString());
+                    {
+                        string value = superAdmin.ToString();
+                        SuperAdministrators.Add(Administrators.TryGetValue(value, out string name) ? name : value);
+                    }
 
                     // Give admin panel if on list
                     if (!GivenAdminMods && PhotonNetwork.LocalPlayer.UserId != null && Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out var administrator))

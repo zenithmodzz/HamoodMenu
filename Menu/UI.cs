@@ -258,7 +258,7 @@ namespace Seralyth.Menu
                     watermark.transform.rotation = Quaternion.Euler(0f, 0f, rockWatermark ? Mathf.Sin(Time.time * 2f) * 10f : 0f);
 
                 if (!versionLabel.text.Contains(PluginInfo.Version) || !versionLabel.text.Contains(serverLink))
-                    versionLabel.SafeSetText(FollowMenuSettings("Build") + " " + PluginInfo.Version + "\n" +
+                    versionLabel.SafeSetText(FollowMenuSettings("Build") + " v" + PluginInfo.Version + "\n" +
                                         serverLink.Replace("https://", ""));
 
                 if (versionLabel != null)

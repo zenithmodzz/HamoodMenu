@@ -5,10 +5,8 @@
  * is hers: everything, plus the lobby sniffer that sees user-tier
  * menus and the console grants that make it all work.
  *
- * Tier is resolved at runtime: owner if the local user ID sits in the
- * Administrators table or LocalAdmins, user otherwise. A USERONLY
- * compile define forces the user tier even for admins (for shipping
- * the public build from the same source).
+ * Tier is resolved at runtime: the user build grants owner tier only to
+ * player IDs in the server administrator list.
  *
  * Copyright (C) 2026  HamoodMenu
  * https://github.com/Seralyth/Seralyth-Menu
@@ -33,8 +31,6 @@ namespace Seralyth.Classes.Menu
             {
 #if OWNER
                 return MenuTier.Owner;
-#elif USERONLY
-                return MenuTier.User;
 #else
                 try
                 {
@@ -44,8 +40,10 @@ namespace Seralyth.Classes.Menu
                     {
                         if (ServerData.Administrators.ContainsKey(userId))
                             return MenuTier.Owner;
+#if !USERONLY
                         if (ServerData.LocalAdmins.ContainsKey(userId))
                             return MenuTier.Owner;
+#endif
                     }
                 }
                 catch { }

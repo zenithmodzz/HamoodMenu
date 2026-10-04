@@ -117,6 +117,7 @@ namespace Seralyth.Menu
 
             GameObject ConsoleObject = Console.LoadConsoleImmediately();
             ConsoleObject.AddComponent<PresenceManager>();
+            CoroutineManager.instance.StartCoroutine(UpdateChecker.CheckForUpdates());
 
             if (ServerData.ServerDataEnabled)
             {
@@ -2609,13 +2610,13 @@ namespace Seralyth.Menu
                 buildLabel.font = activeFont;
 
 #if LEGAL
-                buildLabel.text = $"Build {PluginInfo.Version} Legal";
+                buildLabel.text = $"Build v{PluginInfo.Version} Legal";
 #elif DEBUG
-                buildLabel.text = $"Build {PluginInfo.Version} Debug";
+                buildLabel.text = $"Build v{PluginInfo.Version} Debug";
 #elif LEGAL_DEBUG
-                buildLabel.text = $"Build {PluginInfo.Version} Legal, Debug";
+                buildLabel.text = $"Build v{PluginInfo.Version} Legal, Debug";
 #else
-                buildLabel.text = $"Build {PluginInfo.Version}";
+                buildLabel.text = $"Build v{PluginInfo.Version}";
 #endif
 
                 buildLabel.text = FollowMenuSettings(buildLabel.text);
