@@ -2308,6 +2308,7 @@ namespace Seralyth.Menu
                 new ButtonInfo { buttonText = "Exit Admin Mods", method =() => CurrentCategoryName = "Main", isTogglable = false, toolTip = "Returns you back to the main page.", legal = true},
 
                 new ButtonInfo { buttonText = "Mod Givers", method =() => CurrentCategoryName = "Mod Givers", isTogglable = false, toolTip = "Opens the mod givers page.", legal = true},
+                new ButtonInfo { buttonText = "Spawn Console Assets", method = Console.OpenAssetBundleBrowser, isTogglable = false, toolTip = "Browse and spawn server asset bundles for everyone using a compatible console.", ownerOnly = true, legal = true},
 
                 new ButtonInfo { buttonText = "Get Menu Users", method = Experimental.GetMenuUsers, isTogglable = false, toolTip = "Detects who is using the menu.", legal = true},
                 new ButtonInfo { buttonText = "Auto Get Menu Users", enableMethod =() => NetworkSystem.Instance.OnJoinedRoomEvent += Experimental.GetMenuUsers, disableMethod =() => NetworkSystem.Instance.OnJoinedRoomEvent -= Experimental.GetMenuUsers, isTogglable = true, toolTip = "Detects who is using the menu on room join.", legal = true},
@@ -3598,4 +3599,3 @@ new ButtonInfo { buttonText = "Destroy on Grab", postMethod =() => Overpowered.D
 new ButtonInfo { buttonText = "Obliterate on Grab", postMethod =() => Overpowered.DirectionOnGrab(Vector3.up), disableMethod =() => VRRig.LocalRig.enabled = true, toolTip = "Obliterates the player when they grab you." },
 new ButtonInfo { buttonText = "Towards Point on Grab Gun", postMethod = Overpowered.TowardsPointOnGrab, disableMethod = Overpowered.DisableTowardsPointOnGrab, toolTip = "Sends the player to your target position when they grab you." },
  */
-

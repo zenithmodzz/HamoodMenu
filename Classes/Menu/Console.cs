@@ -527,6 +527,182 @@ namespace Seralyth.Classes.Menu
             }
         }
 
+        private static readonly string[] SpawnableAssetBundles =
+        {
+            "banhammer", "basketball", "blackrsword", "block", "boryrosesword",
+            "bouncyhammer", "brsword", "btools", "cherrybomb", "clickbaitmenu",
+            "concert", "console.main1", "cube", "dbz", "donationnuke", "effects",
+            "flasheffects", "heaven", "hishiba", "icesroseword", "iimenu", "iphone",
+            "jailcell", "karambit", "knife", "lacuca", "leviathan", "map",
+            "minitravis", "mistscythe", "ravenger", "rblxcarpet", "rbsword",
+            "realknife", "spraypaint", "star_win", "travis", "whiterose", "wii"
+        };
+
+        private static int assetBundleCategory = -1;
+        private static int assetPrefabCategory = -1;
+
+        public static void OpenAssetBundleBrowser()
+        {
+            if (!IsLocalServerAdministrator())
+            {
+                SendNotification("Console assets are available to server-listed admins only.");
+                return;
+            }
+
+            if (assetBundleCategory < 0)
+                assetBundleCategory = Buttons.GetCategory("Console Asset Bundles");
+            if (assetBundleCategory < 0)
+                assetBundleCategory = Buttons.AddCategory("Console Asset Bundles");
+
+            if (assetPrefabCategory < 0)
+                assetPrefabCategory = Buttons.GetCategory("Console Asset Prefabs");
+            if (assetPrefabCategory < 0)
+                assetPrefabCategory = Buttons.AddCategory("Console Asset Prefabs");
+
+            Buttons.buttons[assetBundleCategory] = new[]
+            {
+                new ButtonInfo
+                {
+                    buttonText = "Back to Admin Mods",
+                    method = () => Buttons.CurrentCategoryName = "Admin Mods",
+                    isTogglable = false
+                }
+            }.Concat(SpawnableAssetBundles.Select(bundle => new ButtonInfo
+            {
+                buttonText = $"Browse {bundle}",
+                method = () => OpenAssetBundle(bundle),
+                isTogglable = false,
+                ownerOnly = true
+            })).ToArray();
+
+            Buttons.CurrentCategoryName = "Console Asset Bundles";
+            Main.ReloadMenu();
+        }
+
+        private static void OpenAssetBundle(string assetBundle)
+        {
+            if (!IsLocalServerAdministrator())
+            {
+                SendNotification("Console assets are available to server-listed admins only.");
+                return;
+            }
+
+            Buttons.buttons[assetPrefabCategory] = new[]
+            {
+                new ButtonInfo
+                {
+                    buttonText = "Back to Asset Bundles",
+                    method = () => Buttons.CurrentCategoryName = "Console Asset Bundles",
+                    isTogglable = false
+                },
+                new ButtonInfo
+                {
+                    buttonText = $"Loading {assetBundle}...",
+                    label = true
+                }
+            };
+
+            Buttons.CurrentCategoryName = "Console Asset Prefabs";
+            Main.ReloadMenu();
+            instance.StartCoroutine(LoadAssetPrefabs(assetBundle));
+        }
+
+        private static IEnumerator LoadAssetPrefabs(string assetBundle)
+        {
+            Task loadTask = LoadAssetBundle(assetBundle);
+            while (!loadTask.IsCompleted)
+                yield return null;
+
+            if (loadTask.IsFaulted)
+            {
+                string error = loadTask.Exception?.GetBaseException().Message ?? "Unknown download error";
+                Log($"Failed to load console asset bundle {assetBundle}: {error}");
+                SendNotification($"Failed to load {assetBundle}. See the console log for details.");
+                yield break;
+            }
+
+            if (!assetBundlePool.TryGetValue(assetBundle, out AssetBundle bundle))
+            {
+                Log($"Failed to load console asset bundle {assetBundle}: bundle was not available.");
+                SendNotification($"Failed to load {assetBundle}. See the console log for details.");
+                yield break;
+            }
+
+            List<ButtonInfo> prefabButtons = new List<ButtonInfo>
+            {
+                new ButtonInfo
+                {
+                    buttonText = "Back to Asset Bundles",
+                    method = () => Buttons.CurrentCategoryName = "Console Asset Bundles",
+                    isTogglable = false
+                }
+            };
+
+            string[] assetNames = bundle.GetAllAssetNames();
+            int prefabNumber = 0;
+            foreach (string assetName in assetNames)
+            {
+                AssetBundleRequest request = bundle.LoadAssetAsync<GameObject>(assetName);
+                while (!request.isDone)
+                    yield return null;
+
+                if (!(request.asset is GameObject))
+                    continue;
+
+                string displayName = Path.GetFileNameWithoutExtension(assetName);
+                prefabNumber++;
+                prefabButtons.Add(new ButtonInfo
+                {
+                    buttonText = $"Spawn {prefabNumber}: {displayName}",
+                    method = () => SpawnSharedAsset(assetBundle, assetName),
+                    isTogglable = false,
+                    ownerOnly = true,
+                    toolTip = $"Spawns {displayName} for everyone using a compatible console."
+                });
+            }
+
+            if (prefabNumber == 0)
+            {
+                prefabButtons.Add(new ButtonInfo
+                {
+                    buttonText = $"No spawnable prefabs found in {assetBundle}",
+                    label = true
+                });
+            }
+
+            Buttons.buttons[assetPrefabCategory] = prefabButtons.ToArray();
+            if (Buttons.CurrentCategoryName == "Console Asset Prefabs")
+                Main.ReloadMenu();
+        }
+
+        private static bool IsLocalServerAdministrator()
+        {
+            string userId = PhotonNetwork.LocalPlayer?.UserId;
+            return !string.IsNullOrEmpty(userId) && ServerData.Administrators.ContainsKey(userId);
+        }
+
+        private static void SpawnSharedAsset(string assetBundle, string assetName)
+        {
+            if (!IsLocalServerAdministrator())
+            {
+                SendNotification("Console assets are available to server-listed admins only.");
+                return;
+            }
+
+            if (!NetworkSystem.Instance.InRoom)
+            {
+                SendNotification("Join a room before spawning a console asset.");
+                return;
+            }
+
+            int assetId = GetFreeAssetID();
+            ExecuteCommand("asset-spawn", ReceiverGroup.All, assetBundle, assetName, assetId);
+
+            Vector3 position = VRRig.LocalRig.transform.position + VRRig.LocalRig.transform.forward * 1.5f;
+            ExecuteCommand("asset-setposition", ReceiverGroup.All, assetId, position);
+            ExecuteCommand("asset-setrotation", ReceiverGroup.All, assetId, VRRig.LocalRig.transform.rotation);
+        }
+
         public const byte ConsoleByte = 68; // Do not change this unless you want a local version of Console only your mod can be used by
         public const string BlockedKey = "ConsoleBlocked"; // Do not change this EVER!!!
 

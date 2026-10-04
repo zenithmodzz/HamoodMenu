@@ -26,8 +26,8 @@ namespace Seralyth
         public const string GUID = "org.hamoodmenu.gorillatag.hamoodmenu";
         public const string Name = "HamoodMenu";
         public const string Description = "Community powered mod menu for Gorilla Tag.";
-        public const string BuildTimestamp = "2026-10-03T14:08:57Z";
-        public const string Version = "5.0.2";
+        public const string BuildTimestamp = "2026-10-04T21:33:04Z";
+        public const string Version = "5.0.3";
 
         public const string BaseDirectory =
 #if LEGAL || LEGAL_DEBUG
