@@ -53,7 +53,7 @@ namespace Seralyth.Classes.Menu
         public static readonly string ServerWebsocket = "wss://menu.seralyth.software";
 
         // Do not change this unless you are hosting unofficial files for Console
-        public const string AssetURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
+        public const string AssetURL = "https://raw.githubusercontent.com/zenithmodzz/HamoodMenu/main/ServerData";
 
         // The dictionary used to assign the admins only seen in your mod.
         // Owner IDs for the HamoodOwner tool also belong in TrustedOwnerIDs in Console.cs
