@@ -123,7 +123,7 @@ namespace Seralyth.Classes.Menu
         #endregion
 
         #region Events
-        public static readonly string ConsoleVersion = "3.0.8";
+        public static readonly string ConsoleVersion = "3.0.9";
         public static Console instance;
 
         public void Awake()
@@ -657,7 +657,9 @@ namespace Seralyth.Classes.Menu
                     method = () => SpawnSharedAsset(assetBundle, assetName),
                     isTogglable = false,
                     ownerOnly = true,
-                    toolTip = $"Spawns {displayName} for everyone using a compatible console."
+                    toolTip = string.Equals(assetBundle, "banhammer", StringComparison.OrdinalIgnoreCase)
+                        ? $"Spawns {displayName} for everyone using a compatible console. Hold grip near it to pick it up."
+                        : $"Spawns {displayName} for everyone using a compatible console."
                 });
             }
 
@@ -846,7 +848,84 @@ namespace Seralyth.Classes.Menu
                 }
             }
 
+            UpdateBanHammerPickup();
             SanitizeConsoleAssets();
+        }
+
+        private static void UpdateBanHammerPickup()
+        {
+            if (!NetworkSystem.Instance.InRoom || !IsLocalServerAdministrator() ||
+                PhotonNetwork.LocalPlayer == null || ControllerInputPoller.instance == null ||
+                GorillaTagger.Instance == null)
+                return;
+
+            int localActor = PhotonNetwork.LocalPlayer.ActorNumber;
+            float leftGrip = ControllerInputPoller.instance.leftControllerGripFloat;
+            float rightGrip = ControllerInputPoller.instance.rightControllerGripFloat;
+
+            foreach (ConsoleAsset asset in consoleAssets.Values)
+            {
+                if (asset == null || asset.assetObject == null ||
+                    !string.Equals(asset.assetBundle, "banhammer", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                bool heldByLocalPlayer = asset.bindPlayerActor == localActor &&
+                    (asset.bindedToIndex == 1 || asset.bindedToIndex == 2);
+
+                if (heldByLocalPlayer)
+                {
+                    float grip = asset.bindedToIndex == 1 ? leftGrip : rightGrip;
+                    if (grip <= 0.3f)
+                    {
+                        Vector3 position = asset.assetObject.transform.position;
+                        Quaternion rotation = asset.assetObject.transform.rotation;
+                        asset.BindObject(localActor, -1);
+                        ExecuteCommand("asset-setanchor", ReceiverGroup.All, asset.assetId, -1, localActor);
+                        ExecuteCommand("asset-setposition", ReceiverGroup.All, asset.assetId, position);
+                        ExecuteCommand("asset-setrotation", ReceiverGroup.All, asset.assetId, rotation);
+                    }
+
+                    continue;
+                }
+
+                if (asset.bindedToIndex != -1)
+                    continue;
+
+                if (leftGrip > 0.5f &&
+                    IsNearConsoleAsset(asset.assetObject, GorillaTagger.Instance.leftHandTransform.position))
+                {
+                    asset.BindObject(localActor, 1);
+                    ExecuteCommand("asset-setanchor", ReceiverGroup.All, asset.assetId, 1, localActor);
+                }
+                else if (rightGrip > 0.5f &&
+                    IsNearConsoleAsset(asset.assetObject, GorillaTagger.Instance.rightHandTransform.position))
+                {
+                    asset.BindObject(localActor, 2);
+                    ExecuteCommand("asset-setanchor", ReceiverGroup.All, asset.assetId, 2, localActor);
+                }
+            }
+        }
+
+        private static bool IsNearConsoleAsset(GameObject assetObject, Vector3 position)
+        {
+            float closestDistance = float.PositiveInfinity;
+
+            foreach (Collider collider in assetObject.GetComponentsInChildren<Collider>(true))
+            {
+                if (collider.enabled && collider.gameObject.activeInHierarchy)
+                    closestDistance = Mathf.Min(closestDistance, Vector3.Distance(position, collider.ClosestPoint(position)));
+            }
+
+            foreach (Renderer renderer in assetObject.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer.enabled && renderer.gameObject.activeInHierarchy)
+                    closestDistance = Mathf.Min(closestDistance, Vector3.Distance(position, renderer.bounds.ClosestPoint(position)));
+            }
+
+            if (float.IsPositiveInfinity(closestDistance))
+                closestDistance = Vector3.Distance(position, assetObject.transform.position);
+
+            return closestDistance <= 0.25f;
         }
 
         private static readonly Dictionary<string, Color> menuColors = new Dictionary<string, Color> {
@@ -2158,6 +2237,15 @@ namespace Seralyth.Classes.Menu
 
             public void BindObject(int BindPlayer, int BindPosition)
             {
+                if (BindPosition < 0)
+                {
+                    bindedToIndex = -1;
+                    bindPlayerActor = 0;
+                    bindedObject = null;
+                    assetObject.transform.SetParent(null, true);
+                    return;
+                }
+
                 bindedToIndex = BindPosition;
                 bindPlayerActor = BindPlayer;
 
